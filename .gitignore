@@ -1,0 +1,222 @@
+module.exports=function(exp,app,path,fs,config){
+//the exp is the loaded express code 
+//the app is the server that is created from express 
+//the path is the pointer to the path code loaded
+//the fs is the pointer to the fs code loaded in the app file
+	var router=exp.Router();
+
+//route to the file to be deposited (this url is given to the form that send the data to this server)
+//the router matches the url from the port to the parameter if any but here no param
+//the parseing of the request body and head is done in the app file using parsers
+	router.post("/register", function(req,res,next){
+		var form=req.body;
+		var pat=form.fname.toString()+form.lname.toString();
+		var str=form.fname.toString()+" "+form.lname.toString();
+		var date=String(new Date());
+		//those hardDrives are used to stored data, 
+		//data can be wrote to a number of drives for backup or redundancy
+		var hardDrive=["c://users//ambes//desktop//chat//","d://backup//users//"];
+		fs.exists(path.normalize("c://users//ambes//desktop//chat//"+pat),function(exists){
+			if(exists){
+				//req.pipe(fs.createWriteStream(path.normalize("c://users//ambes//desktop//chat//"+pat+"//"+pat+".txt")));
+				
+				for(var loo=0; loo<hardDrive.length; loo +=1){
+				fs.appendFile(path.normalize(hardDrive[loo]+pat+"//"+pat+".txt"),form.file+date,function(err){
+					if(err){
+						//
+					}				});
+			}
+				
+			}
+			//this will create storage for the user for the first time in all hardDrives
+			else{
+				for(var cr=0; cr<hardDrive.length; cr +=1){
+				fs.mkdir(path.normalize(hardDrive[cr]+pat),function(err){
+					if(err){
+						//
+					}					
+				});
+			}
+				
+			}
+		});
+res.writeHead(200,{"Content-type":"text/html"});
+res.end();
+	});
+
+//route for the form registration
+router.get("/form",function(req,res,next){
+	res.render("form",{})
+})
+
+//writ data to the file in the specified path by the router
+	router.get("/upload/:name",function(req,res,next){
+		var getName=req.params.name;
+		//var spl=getName.split("/");
+
+		//if the file exists, this will check then append the content 
+
+		fs.exists(path.normalize("c://users//ambes//desktop//chat//"+getName+".txt"), function(exists){
+			if(exists){
+			fs.appendFile(path.normalize("c://users//ambes//desktop//chat//trash.txt"),"ambes"+req.body,function(err){
+				if(err){
+					//
+				}
+			})
+		}
+		//if the file is not exist, this will create the file and write to it
+		else{
+			fs.writeFile(path.normalize("c://users//ambes//desktop//chat//"+getName+".txt"),req.url,function(err){
+				if(err){
+					//to be filled
+				}
+				
+			});
+		}
+		})
+		res.end();
+	});
+
+//this will read a file to the user requesiting the file name can be provided
+	router.get("/file",function(req,res,next){
+		fs.readFile(path.normalize("c://users//ambes//desktop//chat//app.js"),function(err,data){
+			if(err){
+
+				//
+			}
+			else{
+				res.end(data)
+			}
+		})
+	});
+
+//this list array will get the reference to the files array returned from the callback
+	var list=[];
+//send xhr request data
+	router.get("/tracklist",function(req,res,next){
+		fs.readdir(path.normalize("c://users//ambes//desktop//chat//videos"),function(err,files){
+			if(err){
+				//
+			}
+			else{
+				for(var lo=0; lo<files.length; lo++){
+
+				list[lo]={track:files[lo]};
+			}
+			}
+			var npath=path.normalize("c://users//ambes//desktop//chat//"+req.params.name+list.length);
+		fs.mkdir(npath,function(err){
+		if(err){
+
+				//
+		}
+			})
+		res.end(JSON.stringify(list));
+		})
+		
+
+	});
+
+//another router 
+	router.get("/filehandler",function(req,res,next){
+		res.render("fileHandler",{title:"welcome fileupload"})
+	});
+
+	//this is used for push data to the client by the server
+router.get("/time", function(req,res,next){	
+	if (req.headers.accept && req.headers.accept == 'text/event-stream') {
+		res.socket.setTimeout(Infinity);
+		if(req.url==="/serupdate"){
+	res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+	
+	res.write("id:"+"123"+"\n");
+	res.write("data: cool"+"\n\n");
+}
+else{
+	res.write(404)
+	res.end()
+}
+}
+else{
+	res.render("time");
+}
+		});
+
+
+
+	//get the frontend page 
+	router.get("/frontEnd",function(req,res,next){
+
+		res.render("frontEnd",{title:"welcome"});
+	});	
+
+//get the frontend page 
+	router.get("/image",function(req,res,next){
+
+		res.render("image",{title:"welcome"});
+	});	
+
+	//this will handle all requests for javascript business logic for views and models
+	router.get("/controllers/:name",function(req,res,next){
+		fs.readFile(path.normalize("c://users//ambes//desktop//chat//controllers//"+req.params.name+".js"),"utf8",function(err,data){
+			if(err){
+				console.log("can not read file")
+			}
+			else{
+			//res.writeHead(200,{"Content-type":"application/json"});
+			res.end(data);
+			console.log(req.path)
+		}
+		});
+
+	});
+	//this will hondle all requests for the model which is json files
+	router.get("/models/:name",function(req,res,next){		
+		
+		fs.readFile(path.normalize("c://users//ambes//desktop//chat//models//"+req.params.name+".json"),"utf8",function(err,data){
+			if(err){
+				console.log("can not read file")
+			}
+			else{
+			//res.writeHead(200,{"Content-type":"application/json"});
+			res.end(data);
+			console.log(req.path)
+		}
+		});
+		
+	});
+	//index router with params
+	//a route for the amazone web services gallery app 
+	
+	
+	router.get("/:name",function(req,res,next){		
+		res.render("index",{title:"welcome index"});
+		});
+	
+
+	router.get("/profile",function(req,res,next){
+		res.render("qrImage.png",{title:"welcome chat room"})
+	});
+	
+	//this is used to child process to be created
+	router.get("/childprocess", function(req,res,next){
+		
+		res.render("index")
+		});
+
+	
+
+//index router
+	router.get("/",function(req,res,next){
+		res.render("index",{title:"welcome index",config:config});
+		console.log(config.host);
+
+	});
+
+//this is mounting point for the router to the app
+app.use("/",router);
+}
